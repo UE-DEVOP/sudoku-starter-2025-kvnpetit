@@ -27,7 +27,9 @@ class InnerGrid extends StatelessWidget {
       crossAxisCount: 3,
       children: List.generate(9, (y) {
         int? value = puzzle?.board()?.matrix()?[blockIndex][y].getValue();
+        int? expectedValue = puzzle?.solvedBoard()?.matrix()?[blockIndex][y].getValue();
         bool isSelected = selectedBlock == blockIndex && selectedCell == y;
+        bool isEmpty = value == null || value == 0;
 
         return InkWell(
           onTap: () => onCellSelected(blockIndex, y),
@@ -42,7 +44,12 @@ class InnerGrid extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                value != null && value != 0 ? value.toString() : '',
+                isEmpty
+                    ? (expectedValue?.toString() ?? '')
+                    : value.toString(),
+                style: TextStyle(
+                  color: isEmpty ? Colors.black12 : Colors.black,
+                ),
               ),
             ),
           ),
