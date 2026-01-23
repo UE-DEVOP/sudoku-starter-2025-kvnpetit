@@ -37,6 +37,14 @@ class _GameState extends State<Game> {
     });
   }
 
+  void _setValue(int value) {
+    if (selectedBlock != null && selectedCell != null && puzzle != null) {
+      setState(() {
+        puzzle!.board()!.matrix()![selectedBlock!][selectedCell!].setValue(value);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     var height = MediaQuery.of(context).size.height / 2;
@@ -51,29 +59,61 @@ class _GameState extends State<Game> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: SizedBox(
-          height: boxSize * 3,
-          width: boxSize * 3,
-          child: GridView.count(
-            crossAxisCount: 3,
-            children: List.generate(9, (x) {
-              return Container(
-                width: boxSize,
-                height: boxSize,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.blueAccent),
-                ),
-                child: InnerGrid(
-                  boxSize: boxSize,
-                  puzzle: puzzle,
-                  blockIndex: x,
-                  selectedBlock: selectedBlock,
-                  selectedCell: selectedCell,
-                  onCellSelected: _selectCell,
-                ),
-              );
-            }),
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              height: boxSize * 3,
+              width: boxSize * 3,
+              child: GridView.count(
+                crossAxisCount: 3,
+                children: List.generate(9, (x) {
+                  return Container(
+                    width: boxSize,
+                    height: boxSize,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.blueAccent),
+                    ),
+                    child: InnerGrid(
+                      boxSize: boxSize,
+                      puzzle: puzzle,
+                      blockIndex: x,
+                      selectedBlock: selectedBlock,
+                      selectedCell: selectedCell,
+                      onCellSelected: _selectCell,
+                    ),
+                  );
+                }),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(5, (i) {
+                int value = i + 1;
+                return Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: ElevatedButton(
+                    onPressed: () => _setValue(value),
+                    child: Text('$value'),
+                  ),
+                );
+              }),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(4, (i) {
+                int value = i + 6;
+                return Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: ElevatedButton(
+                    onPressed: () => _setValue(value),
+                    child: Text('$value'),
+                  ),
+                );
+              }),
+            ),
+          ],
         ),
       ),
     );
