@@ -13,6 +13,8 @@ class Game extends StatefulWidget {
 
 class _GameState extends State<Game> {
   Puzzle? puzzle;
+  int? selectedBlock;
+  int? selectedCell;
 
   @override
   void initState() {
@@ -25,6 +27,13 @@ class _GameState extends State<Game> {
     puzzle = Puzzle(puzzleOptions);
     puzzle!.generate().then((_) {
       setState(() {});
+    });
+  }
+
+  void _selectCell(int blockIndex, int cellIndex) {
+    setState(() {
+      selectedBlock = blockIndex;
+      selectedCell = cellIndex;
     });
   }
 
@@ -54,7 +63,14 @@ class _GameState extends State<Game> {
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.blueAccent),
                 ),
-                child: InnerGrid(boxSize: boxSize, puzzle: puzzle, blockIndex: x),
+                child: InnerGrid(
+                  boxSize: boxSize,
+                  puzzle: puzzle,
+                  blockIndex: x,
+                  selectedBlock: selectedBlock,
+                  selectedCell: selectedCell,
+                  onCellSelected: _selectCell,
+                ),
               );
             }),
           ),
