@@ -1,3 +1,4 @@
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:sudoku_api/sudoku_api.dart';
 import 'package:sudoku_starter/inner_grid.dart';
@@ -39,9 +40,36 @@ class _GameState extends State<Game> {
 
   void _setValue(int value) {
     if (selectedBlock != null && selectedCell != null && puzzle != null) {
-      setState(() {
-        puzzle!.board()!.matrix()![selectedBlock!][selectedCell!].setValue(value);
-      });
+      int? expectedValue = puzzle!
+          .solvedBoard()
+          ?.matrix()?[selectedBlock!][selectedCell!]
+          .getValue();
+
+      if (value == expectedValue) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        setState(() {
+          puzzle!
+              .board()!
+              .matrix()![selectedBlock!][selectedCell!]
+              .setValue(value);
+        });
+      } else {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            elevation: 0,
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.transparent,
+            duration: Duration(seconds: 2),
+            content: AwesomeSnackbarContent(
+              title: 'Erreur',
+              message: 'Mauvaise valeur !',
+              contentType: ContentType.failure,
+              inMaterialBanner: true,
+            ),
+          ),
+        );
+      }
     }
   }
 
