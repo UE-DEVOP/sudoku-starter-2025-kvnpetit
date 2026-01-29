@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sudoku_starter/home.dart';
 import 'package:sudoku_starter/game.dart';
 import 'package:sudoku_starter/end.dart';
+import 'package:sudoku_starter/defeat.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,6 +22,10 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/end',
       builder: (context, state) => const End(),
+    ),
+    GoRoute(
+      path: '/defeat',
+      builder: (context, state) => const Defeat(),
     ),
   ],
 );

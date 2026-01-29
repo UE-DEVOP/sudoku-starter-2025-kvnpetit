@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -17,11 +18,38 @@ class _GameState extends State<Game> {
   Puzzle? puzzle;
   int? selectedBlock;
   int? selectedCell;
+  int errorCount = 0;
+  static const int maxErrors = 3;
+
+  // Chronomètre
+  Timer? _timer;
+  int _seconds = 0;
 
   @override
   void initState() {
     super.initState();
     _generatePuzzle();
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _seconds++;
+      });
+    });
+  }
+
+  String _formatTime(int seconds) {
+    int minutes = seconds ~/ 60;
+    int secs = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
   void _generatePuzzle() {
@@ -33,9 +61,22 @@ class _GameState extends State<Game> {
   }
 
   void _selectCell(int blockIndex, int cellIndex) {
+    if (puzzle == null) return;
+
+    // Vérifier si la case est déjà remplie
+    int? value = puzzle!.board()?.matrix()?[blockIndex][cellIndex].getValue();
+    if (value != null && value != 0) return;
+
     setState(() {
       selectedBlock = blockIndex;
       selectedCell = cellIndex;
+    });
+  }
+
+  void _deselectCell() {
+    setState(() {
+      selectedBlock = null;
+      selectedCell = null;
     });
   }
 
@@ -68,6 +109,7 @@ class _GameState extends State<Game> {
         }
       }
     });
+    _timer?.cancel();
     context.go('/end');
   }
 
@@ -86,27 +128,78 @@ class _GameState extends State<Game> {
               .matrix()![selectedBlock!][selectedCell!]
               .setValue(value);
         });
+        _deselectCell();
         if (_isPuzzleCompleted()) {
+          _timer?.cancel();
           context.go('/end');
         }
       } else {
+        setState(() {
+          errorCount++;
+        });
+        _deselectCell();
+
+        if (errorCount >= maxErrors) {
+          _timer?.cancel();
+          context.go('/defeat');
+          return;
+        }
+
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             elevation: 0,
             behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.transparent,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
             content: AwesomeSnackbarContent(
               title: 'Erreur',
               message: 'Mauvaise valeur !',
               contentType: ContentType.failure,
-              inMaterialBanner: true,
             ),
           ),
         );
       }
     }
+  }
+
+  Widget _buildNumberButton(int value) {
+    bool isEnabled = selectedBlock != null && selectedCell != null;
+    return Padding(
+      padding: const EdgeInsets.all(4.0),
+      child: Material(
+        elevation: isEnabled ? 4 : 1,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: isEnabled ? () => _setValue(value) : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isEnabled
+                    ? [Colors.blue.shade400, Colors.blue.shade700]
+                    : [Colors.grey.shade300, Colors.grey.shade400],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                '$value',
+                style: TextStyle(
+                  color: isEnabled ? Colors.white : Colors.grey.shade600,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -118,71 +211,87 @@ class _GameState extends State<Game> {
 
     return Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        centerTitle: true,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.timer),
+            const SizedBox(width: 8),
+            Text(
+              _formatTime(_seconds),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(
-              height: boxSize * 3,
-              width: boxSize * 3,
-              child: GridView.count(
-                crossAxisCount: 3,
-                children: List.generate(9, (x) {
-                  return Container(
-                    width: boxSize,
-                    height: boxSize,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.blueAccent),
-                    ),
-                    child: InnerGrid(
-                      boxSize: boxSize,
-                      puzzle: puzzle,
-                      blockIndex: x,
-                      selectedBlock: selectedBlock,
-                      selectedCell: selectedCell,
-                      onCellSelected: _selectCell,
-                    ),
-                  );
-                }),
+            // Compteur d'erreurs
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Text(
+                'Erreurs : $errorCount / $maxErrors',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red.shade700,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SizedBox(
+                height: boxSize * 3,
+                width: boxSize * 3,
+                child: GridView.count(
+                  crossAxisCount: 3,
+                  children: List.generate(9, (x) {
+                    return Container(
+                      width: boxSize,
+                      height: boxSize,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.blueAccent, width: 1),
+                      ),
+                      child: InnerGrid(
+                        boxSize: boxSize,
+                        puzzle: puzzle,
+                        blockIndex: x,
+                        selectedBlock: selectedBlock,
+                        selectedCell: selectedCell,
+                        onCellSelected: _selectCell,
+                      ),
+                    );
+                  }),
+                ),
               ),
             ),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (i) {
-                int value = i + 1;
-                return Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: ElevatedButton(
-                    onPressed: () => _setValue(value),
-                    child: Text('$value'),
-                  ),
-                );
-              }),
+              children: List.generate(5, (i) => _buildNumberButton(i + 1)),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(4, (i) {
-                int value = i + 6;
-                return Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: ElevatedButton(
-                    onPressed: () => _setValue(value),
-                    child: Text('$value'),
-                  ),
-                );
-              }),
+              children: List.generate(4, (i) => _buildNumberButton(i + 6)),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: _solveAll,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
+                backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
               ),
               icon: const Icon(Icons.auto_fix_high),
               label: const Text('Résoudre tout'),

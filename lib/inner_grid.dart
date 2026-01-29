@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sudoku_api/sudoku_api.dart';
+import 'package:sudoku_starter/cell.dart';
 
 class InnerGrid extends StatelessWidget {
   final double boxSize;
@@ -27,32 +28,20 @@ class InnerGrid extends StatelessWidget {
       crossAxisCount: 3,
       children: List.generate(9, (y) {
         int? value = puzzle?.board()?.matrix()?[blockIndex][y].getValue();
-        int? expectedValue = puzzle?.solvedBoard()?.matrix()?[blockIndex][y].getValue();
+        int? expectedValue =
+            puzzle?.solvedBoard()?.matrix()?[blockIndex][y].getValue();
         bool isSelected = selectedBlock == blockIndex && selectedCell == y;
         bool isEmpty = value == null || value == 0;
+        bool isEditable = isEmpty;
 
-        return InkWell(
+        return SudokuCell(
+          size: innerBoxSize,
+          value: value,
+          expectedValue: expectedValue,
+          isSelected: isSelected,
+          isEmpty: isEmpty,
+          isEditable: isEditable,
           onTap: () => onCellSelected(blockIndex, y),
-          child: Container(
-            width: innerBoxSize,
-            height: innerBoxSize,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.black, width: 0.3),
-              color: isSelected
-                  ? Colors.blueAccent.shade100.withAlpha(100)
-                  : Colors.transparent,
-            ),
-            child: Center(
-              child: Text(
-                isEmpty
-                    ? (expectedValue?.toString() ?? '')
-                    : value.toString(),
-                style: TextStyle(
-                  color: isEmpty ? Colors.black12 : Colors.black,
-                ),
-              ),
-            ),
-          ),
         );
       }),
     );
