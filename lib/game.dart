@@ -1,5 +1,6 @@
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:sudoku_api/sudoku_api.dart';
 import 'package:sudoku_starter/inner_grid.dart';
 
@@ -38,6 +39,38 @@ class _GameState extends State<Game> {
     });
   }
 
+  bool _isPuzzleCompleted() {
+    if (puzzle == null) return false;
+    var board = puzzle!.board()?.matrix();
+    var solvedBoard = puzzle!.solvedBoard()?.matrix();
+    if (board == null || solvedBoard == null) return false;
+
+    for (int i = 0; i < 9; i++) {
+      for (int j = 0; j < 9; j++) {
+        if (board[i][j].getValue() != solvedBoard[i][j].getValue()) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  void _solveAll() {
+    if (puzzle == null) return;
+    var board = puzzle!.board()?.matrix();
+    var solvedBoard = puzzle!.solvedBoard()?.matrix();
+    if (board == null || solvedBoard == null) return;
+
+    setState(() {
+      for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+          board[i][j].setValue(solvedBoard[i][j].getValue()!);
+        }
+      }
+    });
+    context.go('/end');
+  }
+
   void _setValue(int value) {
     if (selectedBlock != null && selectedCell != null && puzzle != null) {
       int? expectedValue = puzzle!
@@ -53,6 +86,9 @@ class _GameState extends State<Game> {
               .matrix()![selectedBlock!][selectedCell!]
               .setValue(value);
         });
+        if (_isPuzzleCompleted()) {
+          context.go('/end');
+        }
       } else {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -140,6 +176,16 @@ class _GameState extends State<Game> {
                   ),
                 );
               }),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _solveAll,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.auto_fix_high),
+              label: const Text('Résoudre tout'),
             ),
           ],
         ),
